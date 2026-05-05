@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMC Çöl Operasyonu - Zero Cache</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        #game-frame {
+            border: none;
+            width: 100%;
+            height: 100%;
+            transition: filter 0.5s ease;
+        }
+
+        .frozen {
+            filter: blur(20px) grayscale(1);
+            pointer-events: none;
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            text-align: center;
+        }
+
+        .instruction {
+            color: #fff;
+            font-size: 12px;
+            line-height: 2;
+            margin-bottom: 40px;
+            text-shadow: 3px 3px 0px #ff0000;
+        }
+
+        /* Siyah Beyaz Katmanlı Buton */
+        #fs-btn {
+            background-color: #000;
+            color: #fff;
+            padding: 25px 50px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 18px;
+            cursor: pointer;
+            border: 4px solid #fff;
+            box-shadow: 0 0 0 4px #000, 0 0 0 8px #fff;
+            transition: all 0.1s;
+        }
+
+        #fs-btn:hover {
+            background-color: #fff;
+            color: #000;
+            box-shadow: 0 0 0 4px #fff, 0 0 0 8px #000;
+        }
+
+        #fs-btn:active {
+            transform: translateY(4px);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="overlay">
+        <p class="instruction">DEVAM ETMEK İÇİN<br>TAM EKRANA GEÇ</p>
+        <button id="fs-btn" onclick="toggleFullScreen()">TAM EKRAN</button>
+    </div>
+
+    <iframe id="game-frame" class="frozen"></iframe>
+
+    <script>
+        const gameFrame = document.getElementById('game-frame');
+        const overlay = document.getElementById('overlay');
+
+        // GITHUB API İLE DOĞRUDAN VERİTABANINDAN ÇEKME
+        async function fetchFromDatabase() {
+            // API adresi: Deponun tam kalbi
+            const apiUrl = "https://api.github.com/repos/agirrdmdenizmehmet/dmccoloperasyonu/contents/index.html";
+            const baseUrl = "https://raw.githack.com/agirrdmdenizmehmet/dmccoloperasyonu/main/";
+
+            try {
+                // Header ile "bana dönüştürülmüş hali değil, ham text'i ver" diyoruz.
+                // Ve sonuna rastgele bir sayı ekleyerek her isteği benzersiz kılıyoruz.
+                const response = await fetch(apiUrl + "?t=" + Math.random(), {
+                    headers: {
+                        'Accept': 'application/vnd.github.v3.raw',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
+                if (!response.ok) throw new Error("API isteği başarısız oldu.");
+
+                let htmlContent = await response.text();
+
+                // Görece linklerin çalışması için BASE etiketi
+                const baseTag = `<base href="${baseUrl}">`;
+                if (htmlContent.includes('<head>')) {
+                    htmlContent = htmlContent.replace('<head>', '<head>' + baseTag);
+                } else {
+                    htmlContent = baseTag + htmlContent;
+                }
+
+                // Ekrana bas
+                gameFrame.srcdoc = htmlContent;
+
+            } catch (err) {
+                console.error("Veritabanına ulaşılamadı, alternatif deneniyor:", err);
+                gameFrame.src = baseUrl + "index.html?t=" + Date.now();
+            }
+        }
+
+        fetchFromDatabase();
+
+        // Tam Ekran Kontrolü
+        function handleFullscreenChange() {
+            const isFull = document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
+            if (isFull) {
+                gameFrame.classList.remove('frozen');
+                overlay.style.display = 'none';
+            } else {
+                gameFrame.classList.add('frozen');
+                overlay.style.display = 'flex';
+            }
+        }
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                const doc = document.documentElement;
+                if (doc.requestFullscreen) doc.requestFullscreen();
+                else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+                else if (doc.msRequestFullscreen) doc.msRequestFullscreen();
+            }
+        }
+    </script>
+</body>
+</html>

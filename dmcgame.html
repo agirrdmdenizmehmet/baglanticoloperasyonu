@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DMC Çöl Operasyonu - Zero Cache</title>
+    
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: #000;
+        }
+
+        #game-frame {
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <iframe id="game-frame"></iframe>
+
+    <script>
+        const gameFrame = document.getElementById('game-frame');
+
+        // GITHUB API İLE DOĞRUDAN VERİTABANINDAN ÇEKME (Cache Sorununu Çözen Kısım)
+        async function fetchFromDatabase() {
+            // API adresi: Deponun tam kalbi
+            const apiUrl = "https://api.github.com/repos/agirrdmdenizmehmet/dmccoloperasyonu/contents/index.html";
+            const baseUrl = "https://raw.githack.com/agirrdmdenizmehmet/dmccoloperasyonu/main/";
+
+            try {
+                // Header ile "bana dönüştürülmüş hali değil, ham text'i ver" diyoruz.
+                // Ve sonuna rastgele bir sayı ekleyerek her isteği benzersiz kılıyoruz.
+                const response = await fetch(apiUrl + "?t=" + Math.random(), {
+                    headers: {
+                        'Accept': 'application/vnd.github.v3.raw',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
+                if (!response.ok) throw new Error("API isteği başarısız oldu.");
+
+                let htmlContent = await response.text();
+
+                // Görece linklerin çalışması için BASE etiketi
+                const baseTag = `<base href="${baseUrl}">`;
+                if (htmlContent.includes('<head>')) {
+                    htmlContent = htmlContent.replace('<head>', '<head>' + baseTag);
+                } else {
+                    htmlContent = baseTag + htmlContent;
+                }
+
+                // Ekrana bas
+                gameFrame.srcdoc = htmlContent;
+
+            } catch (err) {
+                console.error("Veritabanına ulaşılamadı, alternatif deneniyor:", err);
+                gameFrame.src = baseUrl + "index.html?t=" + Date.now();
+            }
+        }
+
+        // Sayfa açılır açılmaz veriyi çek
+        fetchFromDatabase();
+    </script>
+</body>
+</html>
